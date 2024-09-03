@@ -25,7 +25,7 @@ logq: This parameter represents the logarithm of the value q used in the simulat
 
 
 
-Example Usage
+# Example Usage
 
 # Load the script
 load('experiments_algorithm2.sage')
