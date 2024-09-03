@@ -27,11 +27,11 @@ logq: This parameter represents the logarithm of the value q used in the simulat
 
 # Example Usage
 
-Load the script
+1) Load the script
 load('experiments_algorithm2.sage')
 
-Run the function with n = 32 (which is a power of two) and logq = 100
+2) Run the function with n = 32 (which is a power of two) and logq = 100
 success_probability = Reaction_attack(8, 5)
 
-Output the result
+3) Output the result
 print(success_probability)
