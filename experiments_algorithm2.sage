@@ -8,7 +8,7 @@ import time
 
 ## These algorithms samples vector following uniform/Discrete Gaussian distributions
 def rand_vector(n,q): return vector([randint(-q,q) for i in range(n)])
-def noise_vector(n): return vector([D() for i in range(n)])
+def noise_vector(n,D): return vector([D() for i in range(n)])
 
 
 ## This algorithm outputs a coefficientwise modulo reduced ring element.
@@ -19,7 +19,7 @@ def mod(a,q):
    return temp
 
 
-def ringmod(s,q):
+def ringmod(s,q,n,zeta):
    temp = 0
    for i in range(n):
       temp += zeta^i * mod(s[i],q)
@@ -36,7 +36,7 @@ def smallest_prime(n):
 
 
 ## These algorithms are used for computing the size of a ring element.
-def szf(f):
+def szf(f,n,zeta):
    return RR(ringtovector(f,n,zeta).norm(infinity))
 
 def ringtovector(f,n,zeta):
@@ -57,66 +57,76 @@ def ringround(b,zeta,n):
 
 
 
-######## Parameter Setup for BGV
-n = 2^5     # Secret dimension
-logq = 100   # bit of underlying modulus
-q = next_prime(2^logq)
+######## Default Parameter Setup for BGV
 sigma = 3.2    # standard deviation of the noise distribution 
-t = 2^20
-p = smallest_prime(n)
+t = 2^20       # message modulus
 
 
 
-####### Sample a ciphertext 
-R = CyclotomicField(2*n)
-zeta = R.gen()
+def Reaction_attack(n,logq):
+    #n  :  Secret dimension, it should be a power of two
+    #logq : bit of underlying modulus
+    if is_power_of_two(n) == false:
+        print('You should take an input n as a power of two!!')
+        return 
+    ## underlying setup
+    q = next_prime(2^logq)
+    p = smallest_prime(n)
+    R = CyclotomicField(2*n)
+    zeta = R.gen()
+    D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
+    
 
-D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
-coef_s = noise_vector(n)
-s = R(list(coef_s))
-e = R(list(noise_vector(n)))
-a = R(list(rand_vector(n,(q-1)/2)))
-b = ringmod(a*s +t*e, q )
+    ####### Construct a set of ghat used in the Algorithm 2.
+    Rp = PolynomialRing(GF(p),'x')
+    x = Rp.gen()
+    f = x^n +1
+    factor = f.factor()
+    factor_list = []
+    for i in range(n):
+        factor_list += [R(factor[i][0])]
+    F1 = prod(factor_list)
+    ghat_list = []
+    for i in range(n):
+        ghat_list += [ringmod(F1/factor_list[i],p,n,zeta)]
+
+    ###### Algorithm 2 test
+    Iteration_number = 100
+    Success_number = 0
+    for tes in range(Iteration_number):
+        print('tes=',tes)
+        ###### Sample a secret vector
+        coef_s = noise_vector(n,D)
+        s = R(list(coef_s))
+        sp = Rp(list(s))
+        sol = []
+
+        for i in range(n):
+            sol += [ZZ(sp%factor[i][0])]
+        ######## Algorithm 2 main
+        sol_list = []
+        for i in range(n):
+            ####### Sample a ciphertext         
+            e = R(list(noise_vector(n,D)))
+            a = R(list(rand_vector(n,(q-1)/2)))
+            b = ringmod(a*s +t*e, q, n,zeta )
+            u =0 
+            while true == 1:
+                if szf(ringmod(  b+ t*ringround (ghat_list[i]*u*q/p ,zeta, n)  - (a+t*ringround(ghat_list[i]*q/p , zeta, n))*s ,q,n,zeta),n,zeta) < q/4 :
+                    sol_list += [u]
+                    break
+                u += 1
 
 
-####### Construct a set of ghat used in the Algorithm 2 and 3. 
-Rp = PolynomialRing(GF(p),'x')
-x = Rp.gen()
-f = x^n +1
-factor = f.factor()
-factor_list = []
-for i in range(n):
-    factor_list += [R(factor[i][0])]
-F1 = prod(factor_list)
-ghat_list = []
-for i in range(n):
-    ghat_list += [ringmod(F1/factor_list[i],p)]
+        if sol_list == sol:     ## If the secret vector is successfully recovered, it gives 1. 
+            Success_number += 1
+    return Success_number/ Iteration_number
 
 
 
 
 
-###### construct a solution for easy comparing
-sp = Rp(list(s))
-sol = []
-
-for i in range(n):
-    sol += [ZZ(sp%factor[i][0])]
 
 
-######## Algorithm 2
-
-sol_list = []
 
 
-for i in range(n):
-    u =0 
-    while true == 1:
-        if szf(ringmod(  b+ t*ringround (ghat_list[i]*u*q/p ,zeta, n)  - (a+t*ringround(ghat_list[i]*q/p , zeta, n))*s ,q)) < q/4 :
-            sol_list += [u]
-            break
-        u += 1
-
-
-if sol_list == sol:
-    print('Secret key is correctly recovered')
