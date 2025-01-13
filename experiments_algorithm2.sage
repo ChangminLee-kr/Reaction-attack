@@ -19,10 +19,12 @@ def mod(a,q):
    return temp
 
 
-def ringmod(s,q,n,zeta):
+
+
+def ringmod(s,q,n,Power_zeta):
    temp = 0
    for i in range(n):
-      temp += zeta^i * mod(s[i],q)
+      temp += Power_zeta[i] * mod(s[i],q)
    return temp
 
 
@@ -47,10 +49,10 @@ def ringtovector(f,n,zeta):
 
 
 ## This algorithm outputs a coefficientwise rounded ring element.
-def ringround(b,zeta,n):
+def ringround(b,Power_zeta,n):
    temp = 0
    for i in range(ZZ(n)):
-      temp += (b[i].round())*zeta^i
+      temp += (b[i].round())*Power_zeta[i]
    return temp
 
 
@@ -74,26 +76,35 @@ def Reaction_attack(n,logq):
     p = smallest_prime(n)
     R = CyclotomicField(2*n)
     zeta = R.gen()
+    Power_zeta = []
+    for i in range(n):
+        Power_zeta += [zeta^i]
     D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
-    
+    threshold = t*2^10
 
     ####### Construct a set of ghat used in the Algorithm 2.
+
+    
     Rp = PolynomialRing(GF(p),'x')
     x = Rp.gen()
     f = x^n +1
     factor = f.factor()
     factor_list = []
     for i in range(n):
-        factor_list += [R(factor[i][0])]
+        factor_list += [factor[i][0]]
     F1 = prod(factor_list)
     ghat_list = []
+    ghat_list2 = []
     for i in range(n):
-        ghat_list += [ringmod(F1/factor_list[i],p,n,zeta)]
+        ghat_list += [ringmod(R(Rp(F1/factor_list[i])),p,n,Power_zeta)]
+        ghat_list2 += [ringtovector(t*ghat_list[i]*q/p,n,zeta)]
+
 
     ###### Algorithm 2 test
-    Iteration_number = 100
+    Iteration_number = 10
     Success_number = 0
     for tes in range(Iteration_number):
+        
         print('tes=',tes)
         ###### Sample a secret vector
         coef_s = noise_vector(n,D)
@@ -105,23 +116,33 @@ def Reaction_attack(n,logq):
             sol += [ZZ(sp%factor[i][0])]
         ######## Algorithm 2 main
         sol_list = []
+        
         for i in range(n):
-            ####### Sample a ciphertext         
-            e = R(list(noise_vector(n,D)))
+            
+            ####### Sample a ciphertext
+            liste = list(t*noise_vector(n,D))          
+            e = R(liste)
             a = R(list(rand_vector(n,(q-1)/2)))
-            b = ringmod(a*s +t*e, q, n,zeta )
-            u =0 
-            while true == 1:
-                if szf(ringmod(  b+ t*ringround (ghat_list[i]*u*q/p ,zeta, n)  - (a+t*ringround(ghat_list[i]*q/p , zeta, n))*s ,q,n,zeta),n,zeta) < q/4 :
+            b = ringmod(a*s +e, q, n,Power_zeta )
+            u = 0 
+            
+            #### We observe that b_u - a_u*s = b- a*s + ghat_list2[i]*sol[i] - ghat_list2[i] * u. We thus compute b- a*s + ghat_list2[i]*sol[i] as common  
+            common_vec = vector(liste) - ghat_list2[i]*sol[i]
+            
+            temp_vec = ghat_list2[i]
+            temp_vec2 = common_vec- temp_vec
+            while u < p:
+                temp_vec2 += temp_vec
+                for j, entry in enumerate(temp_vec2):
+                    if mod(round(entry),q) > threshold:
+                        u += 1
+                        break
+                else:
                     sol_list += [u]
                     break
-                u += 1
-
-
         if sol_list == sol:     ## If the secret vector is successfully recovered, it gives 1. 
             Success_number += 1
     return Success_number/ Iteration_number
-
 
 
 
