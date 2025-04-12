@@ -151,7 +151,7 @@ def Reaction_attack(n,logq):
 
 
 
-######## Default Parameter Setup for BGV
+######## Default Parameter Setup for CKKS
 sigma = 3.2    # standard deviation of the noise distribution 
 t = 2^30       # Delta
 n = 2^13
