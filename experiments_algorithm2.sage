@@ -151,11 +151,11 @@ def Reaction_attack(n,logq):
 
 
 
-######## Default Parameter Setup for CKKS
+######## Default Parameter Setup for BGV
 sigma = 3.2    # standard deviation of the noise distribution 
-t = 2^60       # Delta
-n = 2^9
-logq = 100
+t = 2^30       # Delta
+n = 2^13
+logq = 35
 start_time = time.time()
 Reaction_attack(n,logq)
 end_time = time.time()
