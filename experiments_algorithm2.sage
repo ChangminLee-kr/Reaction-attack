@@ -52,16 +52,12 @@ def ringtovector(f,n,zeta):
 def ringround(b,Power_zeta,n):
    temp = 0
    for i in range(ZZ(n)):
-      temp += (b[i].round())*Power_zeta[i]
+      temp += round(b[i])*Power_zeta[i]
    return temp
 
 
 
 
-
-######## Default Parameter Setup for BGV
-sigma = 3.2    # standard deviation of the noise distribution 
-t = 2^20       # message modulus
 
 
 
@@ -116,14 +112,18 @@ def Reaction_attack(n,logq):
             sol += [ZZ(sp%factor[i][0])]
         ######## Algorithm 2 main
         sol_list = []
-        
+
+        list_m = []
+        list_m = [round(random.uniform(-1, 1) * t) for i in range(n)]
+        m = R(list_m)
+
         for i in range(n):
             
             ####### Sample a ciphertext
-            liste = list(t*noise_vector(n,D))          
+            liste = list(noise_vector(n,D))          
             e = R(liste)
             a = R(list(rand_vector(n,(q-1)/2)))
-            b = ringmod(a*s +e, q, n,Power_zeta )
+            b = ringmod(a*s +e + m, q, n,Power_zeta)
             u = 0 
             
             #### We observe that b_u - a_u*s = b- a*s + ghat_list2[i]*sol[i] - ghat_list2[i] * u. We thus compute b- a*s + ghat_list2[i]*sol[i] as common  
@@ -151,3 +151,12 @@ def Reaction_attack(n,logq):
 
 
 
+######## Default Parameter Setup for CKKS
+sigma = 3.2    # standard deviation of the noise distribution 
+t = 2^60       # Delta
+n = 2^9
+logq = 100
+start_time = time.time()
+Reaction_attack(n,logq)
+end_time = time.time()
+print(f"Execution time: {end_time - start_time:.6f} seconds")
