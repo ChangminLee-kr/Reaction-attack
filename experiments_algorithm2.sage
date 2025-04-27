@@ -76,7 +76,7 @@ def Reaction_attack(n,logq):
     for i in range(n):
         Power_zeta += [zeta^i]
     D = DiscreteGaussianDistributionIntegerSampler(sigma=sigma)
-    threshold = t*2^10
+    threshold = q/5
 
     ####### Construct a set of ghat used in the Algorithm 2.
 
@@ -101,7 +101,6 @@ def Reaction_attack(n,logq):
     Success_number = 0
     for tes in range(Iteration_number):
         
-        print('tes=',tes)
         ###### Sample a secret vector
         coef_s = noise_vector(n,D)
         s = R(list(coef_s))
@@ -133,6 +132,9 @@ def Reaction_attack(n,logq):
             temp_vec2 = common_vec- temp_vec
             while u < p:
                 temp_vec2 += temp_vec
+                # temp_vec2 = ringmod(temp_vec2, q, n, Power_zeta)
+                # print(szf(temp_vec2, n, zeta) < q/5)
+
                 for j, entry in enumerate(temp_vec2):
                     if mod(round(entry),q) > threshold:
                         u += 1
@@ -140,8 +142,11 @@ def Reaction_attack(n,logq):
                 else:
                     sol_list += [u]
                     break
+#        print(sol)
+#        print(sol_list)
         if sol_list == sol:     ## If the secret vector is successfully recovered, it gives 1. 
             Success_number += 1
+        print(f"Running: {tes:.1f} times and {Success_number:.1f} times success")
     return Success_number/ Iteration_number
 
 
@@ -151,12 +156,24 @@ def Reaction_attack(n,logq):
 
 
 
-######## Default Parameter Setup for CKKS
+
 sigma = 3.2    # standard deviation of the noise distribution 
-t = 2^30       # Delta
-n = 2^13
+t = 2^30    # message modulus
 logq = 35
+n = 2^6
 start_time = time.time()
 Reaction_attack(n,logq)
 end_time = time.time()
 print(f"Execution time: {end_time - start_time:.6f} seconds")
+
+
+
+# ######## Default Parameter Setup for CKKS
+# sigma = 3.2    # standard deviation of the noise distribution 
+# t = 2^30       # Delta
+# n = 2^13
+# logq = 35
+# start_time = time.time()
+# Reaction_attack(n,logq)
+# end_time = time.time()
+# print(f"Execution time: {end_time - start_time:.6f} seconds")
